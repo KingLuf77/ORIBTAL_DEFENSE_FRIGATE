@@ -7,7 +7,7 @@ Orbital Defense Frigate is a text-based retro sci-fi space shooter.
 This game uses libaries only available in Visual Studio.
 
 Install guide:
-1) Download all files and place them in a folder.
+1) Download ORBITAL_DEFENSE_FRIGATE.zip
 2) Open ORBITAL_DEFENSE_FRIGATE.sln
 3) Run the game
 
