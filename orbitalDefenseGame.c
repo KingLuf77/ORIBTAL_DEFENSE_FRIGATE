@@ -1,0 +1,877 @@
+/*
+Thank you for downloading ORBITAL DEFENSE FRIGATE!
+Made by: KingLuf77
+
+This game was created in 12 hours.
+
+Controls:
+  A - strafe left
+  D - strafe right
+  SPACE / W / S - fire railgun
+*/
+
+#include<stdio.h>
+#include<time.h>
+#include<conio.h> // <--- keyboard inputs library; only works with Windows.
+
+// This is the most important variable. If you want the game to be harder/easier, change this one.
+#define frameDelay 10 // ms delay between frames. 0 for smoothest gameplay, might be too fast if you have a good computer.
+
+int music = 0; // set music = 1 to play music. It will open gameTheme.mp3.
+
+#define gameWidth 46
+#define gameHeight 24
+#define pxStart 20 // player starting position
+#define cruiserHealth 2
+#define enemyBulletDamage 2
+#define enemySpawnHeight 4 // determines how high the enemies spawn
+#define enemySpawnDev 6 // adds a random value from zero to this number on how high the enemy spawns
+#define enemySpeed 4 // frames per move - higher is slower
+#define enemySpeedDev 3 // frames - higher increases randomness
+#define enemyFireSpeed 50 // frames per shot (x2) - higher is slower
+#define enemyFireDist 7 // distance that an enemy must be in order to shoot - prevents unfair point-blank shots
+#define regenSpeed (3 * 60) // frames per hp gained - higher is slower
+#define maxHealth 8
+int health = maxHealth;
+#define reloadTime 2
+int reload = reloadTime;
+#define playerBulletSpeed 1
+
+
+int px = pxStart;
+int pBulletsY[gameWidth / 4]; // Y value of bullet [ x value of bullet ] - only one bullet per row
+int pBullets2[gameWidth / 4]; // we need another bullet per row
+int pBullets3[gameWidth / 4]; // had to add another one XD.
+int allPixels[gameHeight * gameWidth / 4];
+int gameOver = 0;
+int cHeight[gameWidth / 4];
+int cHealth[gameWidth / 4];
+int cMode[gameWidth / 4];
+int cBulletx = 0;
+int cBullety = -1;
+int cBullet2x = 0;
+int cBullet2y = -1;
+char keyCode = '0';
+int score = 0;
+int highScore = 0;
+int totalFrames = 0;
+int fastMode = 0; // used for game testing - skips the intro
+int deathType = 0;
+
+#define messageDuration 40
+int message1 = 0;
+int m1dur = 0;
+int message2 = 0;
+int m2dur = 0;
+int message3 = 0;
+int m3dur = 0;
+int message4 = 0;
+int m4dur = 0;
+int message5 = 0;
+int m5dur = 0;
+
+void printMessage(int m) {
+	switch (m) {
+	default:
+		break;
+	case 1:
+		printf(" Oof! You got HIT!");
+		break;
+	case 2:
+		printf("  Enemy DESTROYED!");
+		break;
+	case 3:
+		printf("     Boom! RAMMED!");
+		break;
+	case 4:
+		printf("        +1 HEALTH ");
+		break;
+	}
+}
+
+void addMessage(int m) {
+	message5 = message4;
+	m5dur = messageDuration - 20;
+	message4 = message3;
+	m4dur = messageDuration - 15;
+	message3 = message2;
+	m3dur = messageDuration - 10;
+	message2 = message1;
+	m2dur = messageDuration - 5;
+	message1 = m;
+	m1dur = messageDuration;
+}
+
+void resetCruiser(int xNum) { // When a cruiser is destroyed, it goes back to the start
+	int randVal = rand() % enemySpawnDev;
+	cHeight[xNum] = -enemySpawnHeight - randVal;
+	cHealth[xNum] = cruiserHealth;
+}
+
+void initializeValues() { // Before a game starts, this is done
+	health = maxHealth;
+	system("color 0a");
+	gameOver = 0;
+	totalFrames = 0;
+	score = 0;
+	px = pxStart;
+	reload = reloadTime;
+	cBulletx = 0;
+	cBullety = -1;
+	cBullet2x = 0;
+	cBullet2y = -1;
+	for (int i = 0; i < gameWidth / 4; i++) {
+		resetCruiser(i);
+		pBulletsY[i] = -1;
+		pBullets2[i] = -1;
+		pBullets3[i] = -1;
+	}
+	message1 = 0;
+	m1dur = 0;
+	message2 = 0;
+	m2dur = 0;
+	message3 = 0;
+	m3dur = 0;
+	message4 = 0;
+	m4dur = 0;
+	message5 = 0;
+	m5dur = 0;
+}
+
+void delay(int delayAmt) {
+	clock_t start_time = clock();
+	while (clock() < start_time + delayAmt);
+}
+
+int slowTypeDelay = 50; // ms delay between letters
+void slowType(char word[], int length) { // Prints a word letter by letter, with a delay between each letter
+	for (int i = 0; i < length; i++) {
+		printf("%c", word[i]);
+		delay(slowTypeDelay);
+	}
+}
+
+void bigTitle() {
+	int lineDelay = 50;
+	printf("    _________________ _____ _____ ___   _      ______ ___________ _____ _   _  _____ _____\n"); delay(lineDelay);
+	printf("   |  _  | ___ \\ ___ \\_   _|_   _/ _ \\ | |     |  _  \\  ___|  ___|  ___| \\ | |/  ___|  ___|\n"); delay(lineDelay);
+	printf("   | | | | |_/ / |_/ / | |   | |/ /_\\ \\| |     | | | | |__ | |_  | |__ |  \\| |\\ `--.| |__ \n"); delay(lineDelay);
+	printf("   | | | |    /| ___ \\ | |   | ||  _  || |     | | | |  __||  _| |  __|| . ` | `--. \\  __|\n"); delay(lineDelay);
+	printf("   \\ \\_/ / |\\ \\| |_/ /_| |_  | || | | || |____ | |/ /| |___| |   | |___| |\\  |/\\__/ / |___\n"); delay(lineDelay);
+	printf("    \\___/\\_| \\_\\____/ \\___/  \\_/\\_| |_/\\_____/ |___/ \\____/\\_|   \\____/\\_| \\_/\\____/\\____/\n"); delay(lineDelay);
+	printf("                        ____________ _____ _____   ___ _____ _____\n"); delay(lineDelay);
+	printf("                        |  ___| ___ \\_   _|  __ \\ / _ \\_   _|  ___|\n"); delay(lineDelay);
+	printf("                        | |_  | |_/ / | | | |  \\// /_\\ \\| | | |__\n"); delay(lineDelay);
+	printf("                        |  _| |    /  | | | | __ |  _  || | |  __|\n"); delay(lineDelay);
+	printf("                        | |   | |\\ \\ _| |_| |_\\ \\| | | || | | |___\n"); delay(lineDelay);
+	printf("                        \\_|   \\_| \\_|\\___/ \\____/\\_| |_/\\_/ \\____/\n");
+	delay(120);
+	slowTypeDelay = 20;
+	printf("\n                 ");
+	slowType("E A R T H ' S   L A S T   L I N E   O F   D E F E N S E", 56);
+	delay(60);
+	slowTypeDelay = 35;
+	printf("\n                                 ");
+	slowType("Created by KingLuf77", 21);
+	delay(130);
+	printf("\n\n");
+}
+
+void gameIntro() {
+	system("cls");
+	slowTypeDelay = 13;
+	int lineDelay = 130;
+	slowType("JAN 19, 2331\n\n", 15); delay(lineDelay);
+	slowType("  Foreign space vessels from the Kepler-22 system arrive in attack formation.", 78); delay(lineDelay);
+	slowType("\n  You only get one chance to protect Earth.", 45); delay(lineDelay);
+	slowType("\n  If any aliens make it to the surface, game over.", 52); delay(lineDelay);
+	slowType("\n\n  Your Eagle-Class Space Frigate is equipped with dual ion-thrusters and a 9,000-megajoule railgun.", 102); delay(lineDelay);
+	slowType("\n  Use them to your advantage.", 31); delay(lineDelay);
+}
+
+void gameInstructions() {
+	int lineDelay = 130;
+	printf("\n\n   db    This is your ship."); delay(lineDelay);
+	printf("\n  dHHb  <--  You are the captain."); delay(lineDelay);
+	printf("\n  I  I"); delay(lineDelay);
+	printf("\n\n   nn    This is an alien cruiser.");
+	printf("\n  dYYb  <--  Destroy it."); delay(lineDelay);
+	printf("\n\n  A: strafe left"); delay(lineDelay);
+	printf("\n  D: strafe right;"); delay(lineDelay);
+	printf("\n  SPACE / W / S: fire railgun"); delay(lineDelay);
+	printf("\n\n  Enemies can be rammed, but you will take damage. Use it as a last resort."); delay(lineDelay);
+	printf("\n\nPress any key to continue...");
+	system("pause >null");
+}
+
+void playerControls() {
+	if (_kbhit()) {
+		keyCode = _getch();
+	}
+	else {
+		keyCode = 'x'; // prevents unwanted repetition
+	}
+	if (keyCode == 'a' || keyCode == 'A') {
+		px -= 4;
+		if (px < 0) {
+			px = 0;
+		}
+	}
+	if (keyCode == 'd' || keyCode == 'D') {
+		px += 4;
+		if (px > gameWidth - 4) {
+			px = gameWidth - 4;
+		}
+	}
+	if (keyCode == ' ' || keyCode == 'w' || keyCode == 'W' || keyCode == 's' || keyCode == 'S') {
+		if (reload == reloadTime) {
+			if (pBulletsY[px / 4] < 0) {
+				reload = -1;
+				pBulletsY[px / 4] = gameHeight - 3;
+			}
+			else if (pBullets2[px / 4] < 0) {
+				reload = -1;
+				pBullets2[px / 4] = gameHeight - 3;
+			}
+			else if (pBullets3[px / 4] < 0) {
+				reload = -1;
+				pBullets3[px / 4] = gameHeight - 3;
+			}
+		}
+	}
+}
+
+void randShoot() { // enemy fire
+	int availableCruisers = 0;
+	for (int i = 0; i < gameWidth / 4; i++) {
+		if (cHeight[i] > -1 && cHeight[i] < gameHeight - enemyFireDist) {
+			availableCruisers++;
+		}
+	}
+	if (availableCruisers > 0) {
+		int randPickCruiser = rand() % availableCruisers;
+		int shount = 0;
+		int shooterCruiser = 0;
+		for (int i = 0; i < gameWidth / 4; i++) {
+			if (shount == randPickCruiser) {
+				shooterCruiser = i;
+			}
+			if (cHeight[i] > -1 && cHeight[i] < gameHeight - enemyFireDist) {
+				shount++;
+			}
+		}
+		cBulletx = shooterCruiser;
+		cBullety = cHeight[shooterCruiser] + 1;
+	}
+}
+
+void randShoot2() { // enemy fire (alt)
+	int availableCruisers = 0;
+	for (int i = 0; i < gameWidth / 4; i++) {
+		if (cHeight[i] > -1 && cHeight[i] < gameHeight - enemyFireDist) {
+			availableCruisers++;
+		}
+	}
+	if (availableCruisers > 0) {
+		int randPickCruiser = rand() % availableCruisers;
+		int shount = 0;
+		int shooterCruiser = 0;
+		for (int i = 0; i < gameWidth / 4; i++) {
+			if (shount == randPickCruiser) {
+				shooterCruiser = i;
+			}
+			if (cHeight[i] > -1 && cHeight[i] < gameHeight - enemyFireDist) {
+				shount++;
+			}
+		}
+		cBullet2x = shooterCruiser;
+		cBullet2y = cHeight[shooterCruiser] + 1;
+	}
+}
+
+void physics() {
+	if (totalFrames % regenSpeed == 0 && health < maxHealth) {
+		health++;
+		addMessage(4);
+	}
+	if (health > maxHealth) {
+		health = maxHealth;
+	}
+	if (totalFrames % (gameHeight + enemyFireSpeed) == 0) { // Determines rate of enemy fire
+		randShoot();
+	}
+	if (totalFrames % (gameHeight + enemyFireSpeed) == (gameHeight + enemyFireSpeed) / 2) { // Determines rate of enemy fire (alt)
+		randShoot2();
+	}
+	for (int i = 0; i < gameWidth / 4; i++) {
+		pBulletsY[i] -= playerBulletSpeed;
+		if (pBulletsY[i] < -1) {
+			pBulletsY[i] = -1;
+		}
+		pBullets2[i] -= playerBulletSpeed;
+		if (pBullets2[i] < -1) {
+			pBullets2[i] = -1;
+		}
+		pBullets3[i] -= playerBulletSpeed;
+		if (pBullets3[i] < -1) {
+			pBullets3[i] = -1;
+		}
+	}
+	if (cBullety > -1) {
+		cBullety++;
+		if (cBullety > gameHeight) {
+			cBullety = -1;
+		}
+	}
+	if (cBullet2y > -1) {
+		cBullet2y++;
+		if (cBullet2y > gameHeight) {
+			cBullet2y = -1;
+		}
+	}
+	reload++;
+	if (reload > reloadTime) {
+		reload = reloadTime;
+	}
+	for (int i = 0; i < gameWidth / 4; i++) { // enemy moves
+		int randVal = rand() % enemySpeedDev;
+		int willMove = 0;
+		if (cHeight[i] > gameHeight - 7) {
+			if (totalFrames % (enemySpeed * 5) == 0) {
+				willMove = 1;
+			}
+		}
+		else if (totalFrames % (enemySpeed * 2 + randVal) == 0) {
+			willMove = 1;
+		}
+		if (willMove == 1) {
+			cHeight[i]++;
+			if (cHeight[i] > gameHeight - 1) {
+				gameOver = 1;
+				deathType = 1;
+				break;
+			}
+		}
+	}
+	if (cHeight[px / 4] > gameHeight - 5) { // Detects ramming
+		resetCruiser(px / 4);
+		health -= cHealth[px / 4];
+		addMessage(3);
+		score++;
+	}
+	int warning = 0;
+	if (health <= 2) { // Turns screen red when health is low
+		system("color 0c");
+	}
+	else {
+		for (int i = 0; i < gameWidth / 4; i++) {
+			if (cHeight[i] >= gameHeight - 4) {
+				warning = 1;
+			}
+		}
+		if (warning == 1) {
+			system("color 06"); // Turns screen yellow if enemy is close
+		}
+		else {
+			system("color 0a"); // Turns screen back to green
+		}
+	}
+	if (cBullety > gameHeight - 3 && cBulletx == px / 4) { // Detects the player being shot by enemy bullet
+		health -= enemyBulletDamage;
+		addMessage(1);
+		cBullety = -1;
+	}
+	if (cBullet2y > gameHeight - 3 && cBullet2x == px / 4) {
+		health -= enemyBulletDamage;
+		addMessage(1);
+		cBullet2y = -1;
+	}
+	for (int i = 0; i < gameWidth / 4; i++) {
+		if (pBulletsY[i] <= cHeight[i] + 1 && pBulletsY[i] >= 0) {
+			cHealth[i]--;
+			if (cHealth[i] <= 0) {
+				score++;
+				addMessage(2);
+				resetCruiser(i);
+			}
+			pBulletsY[i] = -1;
+		}
+		if (pBullets2[i] <= cHeight[i] + 1 && pBullets2[i] >= 0) {
+			cHealth[i]--;
+			if (cHealth[i] <= 0) {
+				score++;
+				addMessage(2);
+				resetCruiser(i);
+			}
+			pBullets2[i] = -1;
+		}
+		if (pBullets3[i] <= cHeight[i] + 1 && pBullets3[i] >= 0) {
+			cHealth[i]--;
+			if (cHealth[i] <= 0) {
+				score++;
+				addMessage(2);
+				resetCruiser(i);
+			}
+			pBullets3[i] = -1;
+		}
+	}
+}
+
+void render(int renderVal) {
+	switch (renderVal) {
+	case 0:
+		printf("    "); // empty space
+		break;
+	case 1:
+		if (health > 5) {
+			printf(" db "); // frigate 1
+		}
+		else if (health > 1) {
+			printf(" ob ");
+		}
+		else {
+			printf(" .b ");
+		}
+		break;
+	case 2:
+		if (health > 7) {
+			printf("dHHb");  // frigate 2
+		}
+		else if (health > 5) {
+			printf("d.Hb");
+		}
+		else if (health > 3) {
+			printf("d.H.");
+		}
+		else if (health > 1) {
+			printf("d.h.");
+		}
+		else {
+			printf("n.l.");
+		}
+		break;
+	case 3:
+		if (health > 6) {
+			printf("I  I"); // frigate 3
+		}
+		else if (health > 4) {
+			printf("I  t");
+		}
+		else if (health > 2) {
+			printf("i  t");
+		}
+		else {
+			printf(";  t");
+		}
+		break;
+	case 4:
+		printf(" II "); // player bullet
+		break;
+	case 5:
+		printf(" mm "); // enemy cruiser
+		break;
+	case 6:
+		printf("dYYb"); // enemy cruiser 2
+		break;
+	case 7:
+		printf(" -n "); // enemy cruiser 1 damaged
+		break;
+	case 8:
+		printf("nY-."); // enemy cruiser 2 damaged
+		break;
+	case 9:
+		printf(":VV:"); // enemy bullet
+		break;
+	case 10:
+		switch (totalFrames % 6) { // BVR warning - this feature is not being used
+		default:
+			printf("    ");
+			break;
+		case 1:
+			printf(" .. ");
+			break;
+		case 2:
+			printf(".::.");
+			break;
+		case 3:
+			printf(":..:");
+			break;
+		case 4:
+			printf(".::.");
+			break;
+		case 5:
+			printf(" .. ");
+			break;
+		case 6:
+			printf("    ");
+			break;
+		}
+	}
+}
+
+void pixelDef() { // This sets values for the allPixels array; the array that holds values for all "pixels" using my 4:1 2D rendering system.
+	for (int scany = 0; scany < gameHeight; scany++) {
+		for (int scanx = 0; scanx < gameWidth / 4; scanx++) {
+			int toRender = scanx + (scany * gameWidth / 4);
+			int renderNum = 0; // default; space
+			if (scany == 0) { // BVR warning system - this feature is not being used
+				if (cHeight[scanx] < -1 && cHeight[scanx] > -6) {
+					//renderNum = 10;
+				}
+			}
+			if (scany == cHeight[scanx]) { // cruiser 1
+				renderNum = 5;
+				if (cHealth[scanx] == 1 && cruiserHealth != 1) {
+					renderNum = 7;
+				}
+			}
+			if (scany == cHeight[scanx] + 1) { // cruiser 2
+				renderNum = 6;
+				if (cHealth[scanx] == 1 && cruiserHealth != 1) {
+					renderNum = 8;
+				}
+			}
+			if (scany == pBulletsY[scanx]) { // player bullet
+				renderNum = 4;
+			}
+			if (scany == pBullets2[scanx]) { // player bullet
+				renderNum = 4;
+			}
+			if (scany == pBullets3[scanx]) { // player bullet
+				renderNum = 4;
+			}
+			if (scany == gameHeight - 3 && scanx == px / 4) { // Player ship
+				renderNum = 1;
+			}
+			if (scany == gameHeight - 2 && scanx == px / 4) {
+				renderNum = 2;
+			}
+			if (scany == gameHeight - 1 && scanx == px / 4) {
+				renderNum = 3;
+			}
+			if (totalFrames < 4) { // Player acends into play area (1)
+				if (scany == gameHeight - 3 && scanx == px / 4) {
+					renderNum = 0;
+				}
+				if (scany == gameHeight - 2 && scanx == px / 4) {
+					renderNum = 0;
+				}
+				if (scany == gameHeight - 1 && scanx == px / 4) {
+					renderNum = 0;
+				}
+			}
+			else if (totalFrames < 6) { // Player acends into play area (2)
+				if (scany == gameHeight - 3 && scanx == px / 4) {
+					renderNum = 0;
+				}
+				if (scany == gameHeight - 2 && scanx == px / 4) {
+					renderNum = 0;
+				}
+				if (scany == gameHeight - 1 && scanx == px / 4) {
+					renderNum = 1;
+				}
+			}
+			else if (totalFrames < 8) { // Player acends into play area (3)
+				if (scany == gameHeight - 3 && scanx == px / 4) {
+					renderNum = 0;
+				}
+				if (scany == gameHeight - 2 && scanx == px / 4) {
+					renderNum = 1;
+				}
+				if (scany == gameHeight - 1 && scanx == px / 4) {
+					renderNum = 2;
+				}
+			}
+			if (scany == cBullety && scanx == cBulletx) {
+				renderNum = 9;
+			}
+			if (scany == cBullet2y && scanx == cBullet2x) {
+				renderNum = 9;
+			}
+			if (scany == cBullety && scanx == cBulletx) {
+				renderNum = 9;
+			}
+			if (scany == cBullet2y && scanx == cBullet2x) {
+				renderNum = 9;
+			}
+			allPixels[toRender] = renderNum;
+		}
+	}
+}
+void messageHandler() { // handles the ingame messages that appear on the bottom right corner
+	m1dur--;
+	m2dur--;
+	m3dur--;
+	m4dur--;
+	m5dur--;
+	if (m5dur <= 0) {
+		message5 = 0;
+	}
+	if (m4dur <= 0) {
+		message4 = 0;
+	}
+	if (m3dur <= 0) {
+		message3 = 0;
+	}
+	if (m2dur <= 0) {
+		message2 = 0;
+	}
+	if (m1dur <= 0) {
+		message1 = 0;
+	}
+}
+
+void addSpaces(int spaceAmt) {
+	for (int i = 0; i < spaceAmt; i++) {
+		printf(" ");
+	}
+}
+
+void graphicsEngine() { // This double-loop system prints "pixels" on two loops. Outside loop: rows, inside loop: columns.
+	int sidebarLines = 24 / 3;
+	messageHandler();
+	system("cls");
+	for (int scany = 0; scany < gameHeight; scany++) {
+		if ((totalFrames - 5 - scany) % 4 == 3) { // Left border
+			printf("    .   ");
+		}
+		else if ((totalFrames - 5 - scany) % 4 == 1) {
+			printf("   .    ");
+		}
+		else {
+			printf("        ");
+		}
+		for (int scanx = 0; scanx < gameWidth / 4; scanx++) { // This is the core of the rendering system; the entire play area is rendered in this loop.
+			int toRender = scanx + (scany * gameWidth / 4); // Picks the "pixel" to render
+			render(allPixels[toRender]); // Prints the rendered "pixel"
+			printf(" "); // adds a space between each "pixel"; a stylistic chioce
+		}
+		if ((totalFrames - 5 - scany) % 4 == 3) { // Right border
+			printf("    .");
+		}
+		else if ((totalFrames - 5 - scany) % 4 == 1) {
+			printf("   . ");
+		}
+		else {
+			printf("     ");
+		}
+		if (health < 3 && (totalFrames + gameHeight - scany) % 4 > 1) { // HUD Scattering at low health
+			printf(" ");
+		}
+		int hudSpacing = 3; // How far HUD elements are from the border
+		if (scany == gameHeight - 23) {
+			addSpaces(hudSpacing - 1);
+			printf("ORBITAL DEFENSE FRIGATE:");
+		}
+		if (scany == gameHeight - 22) {
+			addSpaces(hudSpacing - 1);
+			printf("EARTH'S LAST LINE OF DEFENSE");
+		}
+		if (scany == gameHeight - 20) {
+			addSpaces(hudSpacing - 1);
+			printf("Created by KingLuf77");
+		}
+		if (scany == gameHeight - 18) { // top sidebar lines
+			addSpaces(hudSpacing - 1);
+			printf("<<");
+			for (int s = 0; s < sidebarLines; s++) {
+				printf("-+-");
+			}
+			printf(">>");
+		}
+		if (scany == gameHeight - 16) { // railgun status
+			addSpaces(hudSpacing);
+			if (reload == reloadTime) {
+				if (pBullets3[px / 4] != -1 && pBullets2[px / 4] != -1 && pBulletsY[px / 4] != -1) {
+					printf("RAILGUN: [");
+					for (int i = 0; i < reloadTime - 1; i++) {
+						printf("I");
+					}
+					printf("]");
+				}
+				else {
+					printf("RAILGUN: READY");
+				}
+			}
+			else {
+				printf("RAILGUN: [");
+				for (int i = 0; i < reload; i++) {
+					printf("I");
+				}
+				for (int i = reload; i < reloadTime - 1; i++) {
+					printf(" ");
+				}
+				printf("]");
+			}
+		}
+		if (scany == gameHeight - 15) { // health
+			addSpaces(hudSpacing);
+			printf("HEALTH: [");
+			for (int i = 0; i < health; i++) {
+				printf("O");
+			}
+			for (int i = health; i < maxHealth; i++) {
+				printf(" ");
+			}
+			printf("]");
+		}
+		if (scany == gameHeight - 14) { // score
+			addSpaces(hudSpacing);
+			printf("SCORE: %d", score);
+		}
+		if (scany == gameHeight - 13) { // new high score!
+			addSpaces(hudSpacing);
+			if (score > highScore) {
+				printf("New High Score!");
+			}
+			else {
+				printf("High Score: %d", highScore);
+			}
+		}
+		if (scany == gameHeight - 11) { // bottom sidebar
+			addSpaces(hudSpacing - 1);
+			printf("<<");
+			for (int s = 0; s < sidebarLines; s++) {
+				printf("-+-");
+			}
+			printf(">>");
+		}
+		if (scany == gameHeight - 9) { // message 1 (top)
+			addSpaces(hudSpacing - 1 + (sidebarLines * 3) + 5 - 19);
+			printMessage(message1);
+		}
+		if (scany == gameHeight - 8) { // message 2
+			addSpaces(hudSpacing - 1 + (sidebarLines * 3) + 5 - 19);
+			printMessage(message2);
+		}
+		if (scany == gameHeight - 7) { // message 3
+			addSpaces(hudSpacing - 1 + (sidebarLines * 3) + 5 - 19);
+			printMessage(message3);
+		}
+		if (scany == gameHeight - 6) { // message 4
+			addSpaces(hudSpacing - 1 + (sidebarLines * 3) + 5 - 19);
+			printMessage(message4);
+		}
+		if (scany == gameHeight - 5) { // message 5
+			addSpaces(hudSpacing - 1 + (sidebarLines * 3) + 5 - 19);
+			printMessage(message5);
+		}
+		for (int b = 0; b < 3; b++) { // warning signs - screen will turn yellow and you will see "warning!" on the bottom right corner as enemies approach Earth.
+			if (scany == gameHeight - b - 1) {
+				addSpaces(hudSpacing - 1);
+				int warning = 0;
+				for (int i = 0; i < gameWidth / 4; i++) {
+					if (cHeight[i] >= gameHeight - 2 - b) {
+						warning = 1;
+						break;
+					}
+				}
+				if (warning == 1 && totalFrames % 2 == 0) { // this makes the warning flash
+					printf("WARNING!");
+					for (int d = 0; d < 2 - b; d++) { // Adds exclamation points based on which warning label it is.
+						printf("!");
+					}
+				}
+			}
+		}
+		printf("\n");
+	}
+}
+
+void runGame() {
+	while (gameOver == 0) {
+		playerControls(); // keyboard inputs
+		physics(); // gameplay
+		pixelDef(); // defines pixel array using my 4x1 Rendering System
+		graphicsEngine(); // 
+		if (health <= 0) {
+			gameOver = 1;
+			deathType = 2; // Type 2 means that you were killed by the enemy, as opposed to letting them get to Earth
+			break;
+		}
+		delay(frameDelay);
+		totalFrames++;
+	}
+	system("cls"); // clears screen when game is over
+}
+
+void gameOverScreen() {
+	system("color 0a");
+	slowTypeDelay = 30;
+	if (deathType == 1) {
+		slowType("YOU LET THEM PASS. ", 20);
+		delay(100);
+	}
+	if (deathType == 2) {
+		slowType("YOU DIED. ", 11);
+		delay(100);
+	}
+	slowType("GAME OVER.", 11);
+	delay(150);
+	printf("\n");
+	if (score > highScore) {
+		slowTypeDelay = 8;
+		slowType("SCORE:", 7);
+		delay(slowTypeDelay * 2);
+		printf(" %d\n", score);
+		highScore = score;
+		for (int f = 0; f < 14; f++) {
+			system("cls");
+			if (deathType == 1) {
+				printf("YOU LET THEM PASS. ");
+			}
+			if (deathType == 2) {
+				printf("YOU DIED. ");
+			}
+			printf("GAME OVER.\nSCORE: %d\n", score);
+			if (f % 2 == 1) {
+				printf("New High Score!");
+			}
+			else {
+				printf("               ");
+			}
+			delay(70);
+		}
+	}
+	else {
+		slowTypeDelay = 20;
+		slowType("SCORE:", 7);
+		delay(150);
+		printf(" %d\n", score);
+		delay(150);
+		slowType("HIGH SCORE:", 12);
+		delay(150);
+		printf(" %d", highScore);
+	}
+	printf("\n\nPress any key to play again...");
+	system("pause >null");
+}
+
+int main() {
+	system("color 0a");
+	if (fastMode == 0 && music == 1) {
+		system("start gameTheme.mp3");
+	}
+	system("dir");
+	srand(time(NULL));
+	printf("\nGame Ready!\nPress any key to start...");
+	system("pause >null");
+	system("cls");
+	if (fastMode == 0) {
+		bigTitle();
+	}
+	highScore = 0; // Put your high score here
+	//printf("HIGH SCORE: %d\n\n, highScore);
+	printf("Press any key to begin...");
+	system("pause >null");
+	if (fastMode == 0) {
+		gameIntro();
+		gameInstructions();
+	}
+	while (1) {
+		initializeValues();
+		runGame();
+		gameOverScreen();
+	}
+	return(0);
+}
