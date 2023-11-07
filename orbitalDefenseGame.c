@@ -5,22 +5,22 @@ Made by: KingLuf77
 This game was created in 12 hours.
 
 Controls:
-  A - strafe left
-  D - strafe right
-  SPACE / W / S - fire railgun
+  A / LEFT ARROW - strafe left
+  D / RIGHT ARROW - strafe right
+  W / S / UP ARROW / DOWN ARROW / SPACE - fire railgun
 */
 
 #include<stdio.h>
 #include<time.h>
 #include<conio.h> // <--- keyboard inputs library; only works with Windows.
 
-// This is the most important variable. If you want the game to be harder/easier, change this one.
-#define frameDelay 10 // ms delay between frames. 0 for smoothest gameplay, might be too fast if you have a good computer.
+#define frameDelay 10 // ms delay between frames. Lower value to incresase difficulty.
 
 int music = 0; // set music = 1 to play music. It will open gameTheme.mp3.
+int fastMode = 0; // 1 - skips intro,  2 - shortened intro
 
-#define gameWidth 46
-#define gameHeight 24
+#define gameWidth 46 // ORIGINAL: 46
+#define gameHeight 24 // ORIGINAL: 24
 #define pxStart 20 // player starting position
 #define cruiserHealth 2
 #define enemyBulletDamage 2
@@ -36,7 +36,6 @@ int health = maxHealth;
 #define reloadTime 2
 int reload = reloadTime;
 #define playerBulletSpeed 1
-
 
 int px = pxStart;
 int pBulletsY[gameWidth / 4]; // Y value of bullet [ x value of bullet ] - only one bullet per row
@@ -55,7 +54,6 @@ char keyCode = '0';
 int score = 0;
 int highScore = 0;
 int totalFrames = 0;
-int fastMode = 0; // used for game testing - skips the intro
 int deathType = 0;
 
 #define messageDuration 40
@@ -75,7 +73,7 @@ void printMessage(int m) {
 	default:
 		break;
 	case 1:
-		printf(" Oof! You got HIT!");
+		printf("      You got HIT!");
 		break;
 	case 2:
 		printf("  Enemy DESTROYED!");
@@ -122,6 +120,7 @@ void initializeValues() { // Before a game starts, this is done
 	cBullet2y = -1;
 	for (int i = 0; i < gameWidth / 4; i++) {
 		resetCruiser(i);
+		cHeight[i] -= 2 + rand() % 10;
 		pBulletsY[i] = -1;
 		pBullets2[i] = -1;
 		pBullets3[i] = -1;
@@ -153,6 +152,9 @@ void slowType(char word[], int length) { // Prints a word letter by letter, with
 
 void bigTitle() {
 	int lineDelay = 50;
+	if (fastMode == 2) {
+		lineDelay = 10;
+	}
 	printf("    _________________ _____ _____ ___   _      ______ ___________ _____ _   _  _____ _____\n"); delay(lineDelay);
 	printf("   |  _  | ___ \\ ___ \\_   _|_   _/ _ \\ | |     |  _  \\  ___|  ___|  ___| \\ | |/  ___|  ___|\n"); delay(lineDelay);
 	printf("   | | | | |_/ / |_/ / | |   | |/ /_\\ \\| |     | | | | |__ | |_  | |__ |  \\| |\\ `--.| |__ \n"); delay(lineDelay);
@@ -165,15 +167,24 @@ void bigTitle() {
 	printf("                        |  _| |    /  | | | | __ |  _  || | |  __|\n"); delay(lineDelay);
 	printf("                        | |   | |\\ \\ _| |_| |_\\ \\| | | || | | |___\n"); delay(lineDelay);
 	printf("                        \\_|   \\_| \\_|\\___/ \\____/\\_| |_/\\_/ \\____/\n");
-	delay(120);
+	if (fastMode != 2) {
+		delay(120);
+	}
 	slowTypeDelay = 20;
+	if (fastMode == 2) {
+		slowTypeDelay = 5;
+	}
 	printf("\n                 ");
 	slowType("E A R T H ' S   L A S T   L I N E   O F   D E F E N S E", 56);
-	delay(60);
-	slowTypeDelay = 35;
-	printf("\n                                 ");
+	if (fastMode != 2) {
+		delay(60);
+		slowTypeDelay = 35;
+	}
+	printf("\n\n                                 ");
 	slowType("Created by KingLuf77", 21);
-	delay(130);
+	if (fastMode != 2) {
+		delay(130);
+	}
 	printf("\n\n");
 }
 
@@ -181,6 +192,10 @@ void gameIntro() {
 	system("cls");
 	slowTypeDelay = 13;
 	int lineDelay = 130;
+	if (fastMode == 2) {
+		lineDelay = 5;
+		slowTypeDelay = 2;
+	}
 	slowType("JAN 19, 2331\n\n", 15); delay(lineDelay);
 	slowType("  Foreign space vessels from the Kepler-22 system arrive in attack formation.", 78); delay(lineDelay);
 	slowType("\n  You only get one chance to protect Earth.", 45); delay(lineDelay);
@@ -191,6 +206,9 @@ void gameIntro() {
 
 void gameInstructions() {
 	int lineDelay = 130;
+	if (fastMode == 2) {
+		lineDelay = 10;
+	}
 	printf("\n\n   db    This is your ship."); delay(lineDelay);
 	printf("\n  dHHb  <--  You are the captain."); delay(lineDelay);
 	printf("\n  I  I"); delay(lineDelay);
@@ -210,6 +228,21 @@ void playerControls() {
 	}
 	else {
 		keyCode = 'x'; // prevents unwanted repetition
+	}
+	if (keyCode == -32) {
+		keyCode = _getch();
+		if (keyCode == 72) {
+			keyCode = 'w';
+		}
+		if (keyCode == 80) {
+			keyCode = 's';
+		}
+		if (keyCode == 75) {
+			keyCode = 'a';
+		}
+		if (keyCode == 77) {
+			keyCode = 'd';
+		}
 	}
 	if (keyCode == 'a' || keyCode == 'A') {
 		px -= 4;
@@ -455,13 +488,13 @@ void render(int renderVal) {
 			printf("I  I"); // frigate 3
 		}
 		else if (health > 4) {
-			printf("I  t");
+			printf("I  i");
 		}
 		else if (health > 2) {
-			printf("i  t");
+			printf(";  i");
 		}
 		else {
-			printf(";  t");
+			printf(";  '");
 		}
 		break;
 	case 4:
@@ -483,7 +516,7 @@ void render(int renderVal) {
 		printf(":VV:"); // enemy bullet
 		break;
 	case 10:
-		switch (totalFrames % 6) { // BVR warning - this feature is not being used
+		switch (totalFrames % 6) { // BVR warning
 		default:
 			printf("    ");
 			break;
@@ -514,11 +547,13 @@ void pixelDef() { // This sets values for the allPixels array; the array that ho
 		for (int scanx = 0; scanx < gameWidth / 4; scanx++) {
 			int toRender = scanx + (scany * gameWidth / 4);
 			int renderNum = 0; // default; space
-			if (scany == 0) { // BVR warning system - this feature is not being used
+			/*
+			if (scany == 0) { // BVR warning system
 				if (cHeight[scanx] < -1 && cHeight[scanx] > -6) {
-					//renderNum = 10;
+					renderNum = 10;
 				}
 			}
+			*/
 			if (scany == cHeight[scanx]) { // cruiser 1
 				renderNum = 5;
 				if (cHealth[scanx] == 1 && cruiserHealth != 1) {
@@ -549,7 +584,7 @@ void pixelDef() { // This sets values for the allPixels array; the array that ho
 			if (scany == gameHeight - 1 && scanx == px / 4) {
 				renderNum = 3;
 			}
-			if (totalFrames < 4) { // Player acends into play area (1)
+			if (totalFrames < 8) { // Ship ascends into play area (1)
 				if (scany == gameHeight - 3 && scanx == px / 4) {
 					renderNum = 0;
 				}
@@ -560,7 +595,7 @@ void pixelDef() { // This sets values for the allPixels array; the array that ho
 					renderNum = 0;
 				}
 			}
-			else if (totalFrames < 6) { // Player acends into play area (2)
+			else if (totalFrames < 10) { // Ship ascends into play area (2)
 				if (scany == gameHeight - 3 && scanx == px / 4) {
 					renderNum = 0;
 				}
@@ -571,7 +606,7 @@ void pixelDef() { // This sets values for the allPixels array; the array that ho
 					renderNum = 1;
 				}
 			}
-			else if (totalFrames < 8) { // Player acends into play area (3)
+			else if (totalFrames < 12) { // Ship ascends into play area (3)
 				if (scany == gameHeight - 3 && scanx == px / 4) {
 					renderNum = 0;
 				}
@@ -632,11 +667,8 @@ void graphicsEngine() { // This double-loop system prints "pixels" on two loops.
 	messageHandler();
 	system("cls");
 	for (int scany = 0; scany < gameHeight; scany++) {
-		if ((totalFrames - 5 - scany) % 4 == 3) { // Left border
-			printf("    .   ");
-		}
-		else if ((totalFrames - 5 - scany) % 4 == 1) {
-			printf("   .    ");
+		if ((totalFrames - 5 - scany) % 4 > 1) { // Left border
+			printf("  . .   ");
 		}
 		else {
 			printf("        ");
@@ -644,13 +676,9 @@ void graphicsEngine() { // This double-loop system prints "pixels" on two loops.
 		for (int scanx = 0; scanx < gameWidth / 4; scanx++) { // This is the core of the rendering system; the entire play area is rendered in this loop.
 			int toRender = scanx + (scany * gameWidth / 4); // Picks the "pixel" to render
 			render(allPixels[toRender]); // Prints the rendered "pixel"
-			printf(" "); // adds a space between each "pixel"; a stylistic chioce
 		}
-		if ((totalFrames - 5 - scany) % 4 == 3) { // Right border
-			printf("    .");
-		}
-		else if ((totalFrames - 5 - scany) % 4 == 1) {
-			printf("   . ");
+		if ((totalFrames - 5 - scany) % 4 > 1) { // Right border
+			printf("  . .");
 		}
 		else {
 			printf("     ");
@@ -683,32 +711,21 @@ void graphicsEngine() { // This double-loop system prints "pixels" on two loops.
 			addSpaces(hudSpacing);
 			if (reload == reloadTime) {
 				if (pBullets3[px / 4] != -1 && pBullets2[px / 4] != -1 && pBulletsY[px / 4] != -1) {
-					printf("RAILGUN: [");
-					for (int i = 0; i < reloadTime - 1; i++) {
-						printf("I");
-					}
-					printf("]");
+					printf("RAILGUN: - - -");
 				}
 				else {
 					printf("RAILGUN: READY");
 				}
 			}
 			else {
-				printf("RAILGUN: [");
-				for (int i = 0; i < reload; i++) {
-					printf("I");
-				}
-				for (int i = reload; i < reloadTime - 1; i++) {
-					printf(" ");
-				}
-				printf("]");
+				printf("RAILGUN: - - -");
 			}
 		}
 		if (scany == gameHeight - 15) { // health
 			addSpaces(hudSpacing);
 			printf("HEALTH: [");
 			for (int i = 0; i < health; i++) {
-				printf("O");
+				printf("I");
 			}
 			for (int i = health; i < maxHealth; i++) {
 				printf(" ");
@@ -717,7 +734,7 @@ void graphicsEngine() { // This double-loop system prints "pixels" on two loops.
 		}
 		if (scany == gameHeight - 14) { // score
 			addSpaces(hudSpacing);
-			printf("SCORE: %d", score);
+			printf("SCORE:     %d", score);
 		}
 		if (scany == gameHeight - 13) { // new high score!
 			addSpaces(hudSpacing);
@@ -725,7 +742,7 @@ void graphicsEngine() { // This double-loop system prints "pixels" on two loops.
 				printf("New High Score!");
 			}
 			else {
-				printf("High Score: %d", highScore);
+				printf("HighScore: %d", highScore);
 			}
 		}
 		if (scany == gameHeight - 11) { // bottom sidebar
@@ -766,7 +783,7 @@ void graphicsEngine() { // This double-loop system prints "pixels" on two loops.
 						break;
 					}
 				}
-				if (warning == 1 && totalFrames % 2 == 0) { // this makes the warning flash
+				if (warning == 1 && totalFrames % 4 > 1) { // this makes the warning flash
 					printf("WARNING!");
 					for (int d = 0; d < 2 - b; d++) { // Adds exclamation points based on which warning label it is.
 						printf("!");
@@ -781,9 +798,9 @@ void graphicsEngine() { // This double-loop system prints "pixels" on two loops.
 void runGame() {
 	while (gameOver == 0) {
 		playerControls(); // keyboard inputs
-		physics(); // gameplay
-		pixelDef(); // defines pixel array using my 4x1 Rendering System
-		graphicsEngine(); // 
+		physics(); // gameplay - scoring, damage, etc.
+		pixelDef(); // defines pixel array values using my 4x1 Rendering System; creates render values for the play area
+		graphicsEngine(); // renders play area and HUD elements
 		if (health <= 0) {
 			gameOver = 1;
 			deathType = 2; // Type 2 means that you were killed by the enemy, as opposed to letting them get to Earth
@@ -849,7 +866,7 @@ void gameOverScreen() {
 
 int main() {
 	system("color 0a");
-	if (fastMode == 0 && music == 1) {
+	if (fastMode != 1 && music == 1) {
 		system("start gameTheme.mp3");
 	}
 	system("dir");
@@ -857,14 +874,12 @@ int main() {
 	printf("\nGame Ready!\nPress any key to start...");
 	system("pause >null");
 	system("cls");
-	if (fastMode == 0) {
+	if (fastMode != 1) {
 		bigTitle();
 	}
-	highScore = 0; // Put your high score here
-	//printf("HIGH SCORE: %d\n\n, highScore);
 	printf("Press any key to begin...");
 	system("pause >null");
-	if (fastMode == 0) {
+	if (fastMode != 1) {
 		gameIntro();
 		gameInstructions();
 	}
