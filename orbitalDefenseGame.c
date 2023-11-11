@@ -14,7 +14,7 @@ Controls:
 #include<time.h>
 #include<conio.h> // <--- keyboard inputs library; only works with Windows.
 
-#define frameDelay 10 // ms delay between frames. Lower value to incresase difficulty.
+#define frameDelay 18 // ms delay between frames. Lower value to incresase difficulty.
 
 int music = 0; // set music = 1 to play music. It will open gameTheme.mp3.
 int fastMode = 0; // 1 - skips intro,  2 - shortened intro
@@ -547,13 +547,11 @@ void pixelDef() { // This sets values for the allPixels array; the array that ho
 		for (int scanx = 0; scanx < gameWidth / 4; scanx++) {
 			int toRender = scanx + (scany * gameWidth / 4);
 			int renderNum = 0; // default; space
-			/*
 			if (scany == 0) { // BVR warning system
 				if (cHeight[scanx] < -1 && cHeight[scanx] > -6) {
-					renderNum = 10;
+					//renderNum = 10;
 				}
 			}
-			*/
 			if (scany == cHeight[scanx]) { // cruiser 1
 				renderNum = 5;
 				if (cHealth[scanx] == 1 && cruiserHealth != 1) {
@@ -617,13 +615,7 @@ void pixelDef() { // This sets values for the allPixels array; the array that ho
 					renderNum = 2;
 				}
 			}
-			if (scany == cBullety && scanx == cBulletx) {
-				renderNum = 9;
-			}
-			if (scany == cBullet2y && scanx == cBullet2x) {
-				renderNum = 9;
-			}
-			if (scany == cBullety && scanx == cBulletx) {
+			if (scany == cBullety && scanx == cBulletx) { // enemy bullet
 				renderNum = 9;
 			}
 			if (scany == cBullet2y && scanx == cBullet2x) {
@@ -662,6 +654,7 @@ void addSpaces(int spaceAmt) {
 	}
 }
 
+int prevTime = 0;
 void graphicsEngine() { // This double-loop system prints "pixels" on two loops. Outside loop: rows, inside loop: columns.
 	int sidebarLines = 24 / 3;
 	messageHandler();
@@ -695,9 +688,18 @@ void graphicsEngine() { // This double-loop system prints "pixels" on two loops.
 			addSpaces(hudSpacing - 1);
 			printf("EARTH'S LAST LINE OF DEFENSE");
 		}
-		if (scany == gameHeight - 20) {
+		if (scany == gameHeight - 21) {
 			addSpaces(hudSpacing - 1);
 			printf("Created by KingLuf77");
+		}
+		if (scany == gameHeight - 19) {
+			addSpaces(hudSpacing - 1);
+			//printf("Created by KingLuf77");
+			int theTime = clock();
+			int newTime = clock() - prevTime;
+			int fps = 1000 / newTime;
+			printf("FPS: %d", fps);
+			prevTime = theTime;
 		}
 		if (scany == gameHeight - 18) { // top sidebar lines
 			addSpaces(hudSpacing - 1);
